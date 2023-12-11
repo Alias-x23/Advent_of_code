@@ -56,6 +56,10 @@ class AdventOfCode:
 
         return out_list
 
+    @staticmethod
+    def sum_list(name, sum_list):
+        print(f"Sum of {name} is: {sum(sum_list)}")
+
 
 def main():
     day_2 = AdventOfCode()
