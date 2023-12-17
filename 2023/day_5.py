@@ -36,23 +36,71 @@ def get_locations(seed_list, plant_dict):
     return out_list
 
 
-def alt_seed_list(seed_list, plant_dict):
+def alt_seed_list(seed_list):
 
     start_list = []
     range_list = []
 
     for i, seed in enumerate(seed_list):
         if (i+1) % 2 == 0:
-            range_list.append(seed)
+            range_list.append(int(seed))
         else:
-            start_list.append(seed)
+            start_list.append(int(seed))
 
-    out_list = []
+    range_dict = {i: [int(start_list[i]), (start_list[i] + range_list[i])] for i in range(len(start_list))}
 
-    for j, start in enumerate(start_list):
-        size = int(range_list[j]) + int(start)
-        sub_list = np.arange(int(start), int(size)).tolist()
-        out_list.append(min(get_locations(sub_list, plant_dict)))
+    return range_dict
+
+
+def reverse_lookup(plant_dict, range_dict):
+    sections = list(plant_dict.keys())
+    check = 99750000
+    loc_num = 99750000
+
+    while True:
+        for section in reversed(sections):
+            for limits in plant_dict[section]:
+                limits = [int(x) for x in limits]
+                if limits[0] <= check < (limits[0]+limits[2]):
+                    check = limits[1]+(check-limits[0])
+                    break
+        for key in range_dict.keys():
+            if range_dict[key][0] <= check <= range_dict[key][1]:
+                print(f"First match is {loc_num} from {check}")
+                exit()
+        loc_num += 1
+        if loc_num % 10000 == 0:
+            print(f"Run {loc_num} checks so far")
+        check = loc_num
+
+
+def get_locations_alt(range_dict, plant_dict):
+    seed_range_list = list(range_dict.values())
+
+    for section in plant_dict.keys():
+        section_list = []
+        for seed_range in seed_range_list:
+            for limits in plant_dict[section]:
+                limits = [int(x) for x in limits]
+
+                if limits[1] <= seed_range[0] < (limits[1]+limits[2]):
+                    if limits[1] <= seed_range[1] < (limits[1] + limits[2]):
+                        break
+                    else:
+                        seed_range_list.append([(limits[1] + limits[2]), seed_range[1]])
+                        seed_range[1] = limits[1] + limits[2] - 1
+                        break
+
+                elif limits[1] <= seed_range[1] < (limits[1] + limits[2]):
+                    seed_range_list.append([seed_range[0], limits[1] - 1])
+                    seed_range[0] = limits[1]
+                    break
+
+            section_list.append([limits[0]+(seed_range[0]-limits[1]), limits[0]+(seed_range[1]-limits[1])])
+        seed_range_list = section_list.copy()
+        print(f"Seed list now contains {len(seed_range_list)} ranges")
+
+    out_list = [x for z in seed_range_list for x in z]
 
     return out_list
 
@@ -62,9 +110,10 @@ def main():
     seed_list, plant_dict = sort_data(text)
     location_list = get_locations(seed_list, plant_dict)
     print(f"The lowest location value is {min(location_list)}")
-    new_loc_list = alt_seed_list(seed_list, plant_dict)
-    #location_list2 = get_locations(new_seed_list, plant_dict)
-    print(f"The lowest new location value is {min(new_loc_list)}")
+    range_dict = alt_seed_list(seed_list)
+    new_location_list = get_locations_alt(range_dict, plant_dict)
+    print(f"The lowest location value is {min(new_location_list)}")
+    #reverse_lookup(plant_dict, range_dict)
 
 
 if __name__ == '__main__':
